@@ -15,7 +15,6 @@ app.post('/todos', (req,res) => {
    });
 
    todo.save().then((doc) => {
-     console.log('Here is the Todo', doc);
      res.send(doc);
    },
    (e) => {
@@ -26,3 +25,5 @@ app.post('/todos', (req,res) => {
 app.listen(3000, () => {
   console.log('App is listening on port 3000');
 });
+
+module.exports = {app};
