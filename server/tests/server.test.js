@@ -8,13 +8,15 @@ const {ObjectID} = require('mongodb');
 
 const todoData = [{
   text: 'First todo',
-  _id: new ObjectID()
+  _id: new ObjectID(),
+  completedat: 123
 },{
   text: 'Second todo',
   _id: new ObjectID()
 },{
   text: 'Third todo',
-  _id: new ObjectID()
+  _id: new ObjectID(),
+  completed: true
 }];
 
 beforeEach((done) => {
@@ -153,5 +155,51 @@ describe('Delete /todos/:id', () => {
     .delete(`/todos/${id}`)
     .expect(404)
     .end(done);
+  });
+});
+
+describe('PATCH /todos/:id tests', () => {
+  it('Should update a todo and set completed to true', (done) => {
+    var id = todoData[2]._id;
+    todoData[2].text = "Third todo test";
+    request(app)
+    .patch(`/todos/${id}`)
+    .send(todoData[2])
+    .expect(200)
+    .expect((res) => {
+      console.log(res.body.todo.text);
+      expect(res.body.todo.text).toBe(todoData[2].text);
+      expect(res.body.todo.completed).toBe(true);
+      expect(res.body.todo.completedAt).toNotBe(null);
+      expect(res.body.todo._id).toBe(id.toHexString());
+      expect(res.body.todo.completedAt).toBeA('number');
+    })
+    .end((err, res) => {
+      if (err) {
+        return done(err);
+      }
+    });
+    done();
+  });
+
+  it('Should update and clear completedAt', (done) => {
+    var id = todoData[0]._id;
+    todoData[0].text = 'First todo test';
+    request(app)
+    .patch(`/todos/${todoData[0]._id}`)
+    .send(todoData[0])
+    .expect(200)
+    .expect((res) => {
+       expect(res.body.todo.text).toBe(todoData[0].text);
+       expect(res.body.todo.completed).toBe(false);
+       expect(res.body.todo.completedAt).toNotExist();
+       expect(res.body.todo._id).toBe(id.toHexString());
+     })
+     .end((err, res) => {
+       if (err) {
+         return done(err);
+       }
+     });
+     done();
   });
 });
