@@ -79,8 +79,8 @@ describe('GET /todos', () => {
     .get('/todos')
     .expect(200)
     .expect((res) => {
-      expect(res.body.docs.length).toBe(3);
-      expect(res.body.docs[0].text).toBe('First todo');
+      expect(res.body.todos.length).toBe(3);
+      expect(res.body.todos[0].text).toBe('First todo');
     })
     .end(done);
   });
@@ -112,6 +112,36 @@ describe('GET /todos/:id', () => {
 
     request(app)
     .get(`/todos/${id}`)
+    .expect(404)
+    .end(done);
+  });
+});
+
+describe('Delete /todos/:id', () => {
+  it('Should delete and return a todo with an id', (done) => {
+    var id = todoData[0]._id.toHexString();
+
+    request(app)
+    .delete('/todos/'+id)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.todo.text).toBe(todoData[0].text);
+      expect(res.body.todo._id).toBe(id);
+    }).end(done);
+  });
+
+  it('Should fail id validation for delete with todo not found', (done) => {
+    request(app)
+    .delete('/todos/123')
+    .expect(404)
+    .end(done);
+  });
+
+  it('Should fail delete with different valid todo not found', (done) => {
+    var id = new ObjectID().toHexString();
+
+    request(app)
+    .delete(`/todos/${id}`)
     .expect(404)
     .end(done);
   });
