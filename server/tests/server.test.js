@@ -4,12 +4,17 @@ const request = require('supertest');
 const {app} = require('./../server');
 const {ToDo} = require('./../models/todo');
 
+const {ObjectID} = require('mongodb');
+
 const todoData = [{
-  text: 'First todo'
+  text: 'First todo',
+  _id: new ObjectID()
 },{
-  text: 'Second todo'
+  text: 'Second todo',
+  _id: new ObjectID()
 },{
-  text: 'Third todo'
+  text: 'Third todo',
+  _id: new ObjectID()
 }];
 
 beforeEach((done) => {
@@ -79,5 +84,35 @@ describe('GET /todos', () => {
     })
     .end(done);
   });
+});
 
+describe('GET /todos/:id', () => {
+  it('Should return a todo with an id', (done) => {
+    var id = todoData[0]._id.toHexString();
+
+    request(app)
+    .get('/todos/'+id)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.todo.text).toBe(todoData[0].text);
+      expect(res.body.todo._id).toBe(id);
+    })
+    .end(done);
+  });
+
+  it('Should fail id validation with todo not found', (done) => {
+    request(app)
+    .get('/todos/123')
+    .expect(404)
+    .end(done);
+  });
+
+  it('Should fail with different valid todo not found', (done) => {
+    var id = new ObjectID().toHexString();
+
+    request(app)
+    .get(`/todos/${id}`)
+    .expect(404)
+    .end(done);
+  });
 });
