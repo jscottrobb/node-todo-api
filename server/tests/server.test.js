@@ -127,8 +127,17 @@ describe('Delete /todos/:id', () => {
     .expect((res) => {
       expect(res.body.todo.text).toBe(todoData[0].text);
       expect(res.body.todo._id).toBe(id);
-    }).end(done);
+    }).end((err, res) => {
+      if (err) {
+        return done(err);
+      }
+
+      ToDo.findById(id).then((todo) => {
+        expect(todo).toNotExist();
+        done();
+      }).catch((err) => done(err));
   });
+});
 
   it('Should fail id validation for delete with todo not found', (done) => {
     request(app)
