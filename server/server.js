@@ -1,9 +1,10 @@
-var express = require('express');
-var bodyParser = require('body-parser');
+const _ = require('lodash');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-var {mongoose} = require('./db/mongoose');
-var {ToDo} = require('./models/todo');
-var {User} = require('./models/user');
+const {mongoose} = require('./db/mongoose');
+const {ToDo} = require('./models/todo');
+const {User} = require('./models/user');
 const {ObjectID} = require('mongodb');
 
 const port = process.env.PORT || 3000;
@@ -66,6 +67,33 @@ app.post('/todos', (req,res) => {
         res.status(400);
       });
     });
+
+    app.patch('/todos/:id', (req,res) => {
+      var id = req.params.id;
+
+      if (!ObjectID.isValid(id)) {
+        return res.status(404).send();
+      }
+
+      var body = _.pick(req.body,['text','completed']);
+
+      if (_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+      }
+      else {
+        body.completed = false;
+        body.completedAt = null;
+      }
+
+      ToDo.findByIdAndUpdate(id, {$set: body},{new: true}).then((todo) => {
+         if (!todo) {
+           return res.status(404).send();
+         }
+         res.send({todo});
+       }).catch((e) => {
+         res.status(400);
+       });
+     });
 
 app.listen(port, () => {
   console.log(`App is listening on port ${port}`);
