@@ -19,6 +19,15 @@ const todoData = [{
   completed: true
 }];
 
+const userData = [{
+  email: 'jsrobb@yahoo.com',
+  password: 'blazin'
+},
+{
+  email: 'scooter@gmail.com',
+  password: 'killinMeSmalls'
+}];
+
 beforeEach((done) => {
   ToDo.remove({}).then(() => {
      ToDo.insertMany(todoData);
@@ -201,5 +210,34 @@ describe('PATCH /todos/:id tests', () => {
        }
      });
      done();
+  });
+});
+
+describe('User post tests', () => {
+  it('should post a valid user', (done) => {
+    request(app)
+    .post('/users')
+    .send(userData[0])
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.user.email).toBe(userData[0].email);
+      expect(res.body.user.password).toBe(userData[0].password);
+    })
+    .end((err, res) => {
+      if (err) {
+        return done(err);
+      }
+
+      User.find({userData[0].email}).then((res) => {
+        if (err) {
+          return done(err);
+        }
+        
+        expect(res.length).toBe(1);
+        expect(res[0].email).toBe(userData[0].email);
+        done();
+      })
+      .catch((e) => done(e));
+    });
   });
 });
