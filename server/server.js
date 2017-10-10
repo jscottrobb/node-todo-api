@@ -7,6 +7,7 @@ const {mongoose} = require('./db/mongoose');
 const {ToDo} = require('./models/todo');
 const {User} = require('./models/user');
 const {ObjectID} = require('mongodb');
+const {authenticate} = require('./middleware/authenticate');
 
 const port = process.env.PORT || 3000;
 
@@ -96,6 +97,7 @@ app.post('/todos', (req,res) => {
        });
      });
 
+     // POST user --- public signup route
      app.post('/users', (req,res) => {
         var body = _.pick(req.body,['email','password']);
         var user = new User(body);
@@ -108,6 +110,10 @@ app.post('/todos', (req,res) => {
           .catch((e) => {
              res.status(400).send(e);
           });
+      });
+
+     app.get('/users/me', authenticate, (req,res) => {
+        res.send(req.user);
       });
 
 app.listen(port, () => {
