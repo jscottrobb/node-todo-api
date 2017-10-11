@@ -154,7 +154,6 @@ describe('PATCH /todos/:id tests', () => {
     .send(todoData[2])
     .expect(200)
     .expect((res) => {
-      console.log(res.body.todo.text);
       expect(res.body.todo.text).toBe(todoData[2].text);
       expect(res.body.todo.completed).toBe(true);
       expect(res.body.todo.completedAt).toNotBe(null);
@@ -275,8 +274,8 @@ describe('POST /users', () => {
 
 describe('POST /users/login tests', () => {
   it('Should login with valid email and password', (done) => {
-    var email = userData[0].email;
-    var password = userData[0].password;
+    var email = userData[1].email;
+    var password = userData[1].password;
     request(app)
     .post('/users/login')
     .send({email, password})
@@ -290,7 +289,7 @@ describe('POST /users/login tests', () => {
       if (err) {
         return done(err);
       }
-      var _id = userData[0]._id;
+      var _id = userData[1]._id;
       User.findById({_id}).then((user) => {
         expect(user).toExist();
         var token = user.tokens[0];
@@ -303,31 +302,26 @@ describe('POST /users/login tests', () => {
     });
   });
 
-  it('Should fail when email is invalid', (done) => {
-    var email = 'jrobb1';
-    var password = userData[0].password;
-    request(app)
-    .post('/users/login')
-    .send({email, password})
-    .expect(400)
-    .expect((res) => {
-      expect(res.body).toEqual({});
-      expect(res.headers['x-auth']).toNotExist();
-    })
-    .end(done);
-  });
-
   it('Should fail when password is invalid', (done) => {
-    var email = userData[0].email;
-    var password = '123';
+    var email = userData[1].email;
+    var password = userData[1].password + 'x';
     request(app)
     .post('/users/login')
     .send({email, password})
     .expect(400)
     .expect((res) => {
-      expect(res.body).toEqual({});
       expect(res.headers['x-auth']).toNotExist();
     })
-    .end(done);
+    .end((err,res) => {
+      if (err) {
+        return done(err);
+      }
+      var _id = userData[1]._id;
+      User.findById({_id}).then((user) => {
+        expect(user).toExist();
+        expect(user.tokens.length).toBe(0);
+        done();
+      }).catch((e) => done(e));
+    });
   });
 });

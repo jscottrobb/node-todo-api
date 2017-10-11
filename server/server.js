@@ -118,11 +118,12 @@ app.post('/todos', (req,res) => {
       });
 
 app.post('/users/login', (req, res) => {
-  var body = _.pick(req.body,['email','password']);
+  var body = _.pick(req.body, ['email', 'password']);
 
-  User.findByCredentials(body.email,body.password).then((user) => {
-      var token = user.tokens[0].token;
-      res.header('x-auth',token).send(user);
+  User.findByCredentials(body.email, body.password).then((user) => {
+     return user.genAuthToken().then((token) => {
+        res.header('x-auth', token).send(user);
+     });
   }).catch((e) => {
     res.status(400).send();
   });
