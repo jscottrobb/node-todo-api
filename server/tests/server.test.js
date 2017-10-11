@@ -19,6 +19,7 @@ describe('POST /todos tests', () => {
     request(app)
       .post('/todos')
       .send({text})
+      .set('x-auth',userData[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.text).toBe(text);
@@ -43,6 +44,7 @@ describe('POST /todos tests', () => {
   it('Should fail because todo is invalid', (done) => {
     request(app)
       .post('/todos')
+      .set('x-auth',userData[0].tokens[0].token)
       .send({text: ''})
       .expect(400)
       .end((err, res) => {
@@ -54,7 +56,7 @@ describe('POST /todos tests', () => {
           if (err) {
             return done(err);
           }
-          expect(res.length).toBe(3);
+          expect(res.length).toBe(2);
           done();
         })
         .catch((e) => done(e));
@@ -66,9 +68,10 @@ describe('GET /todos', () => {
   it('Should get all todos', (done) => {
     request(app)
     .get('/todos')
+    .set('x-auth',userData[0].tokens[0].token)
     .expect(200)
     .expect((res) => {
-      expect(res.body.todos.length).toBe(3);
+      expect(res.body.todos.length).toBe(1);
       expect(res.body.todos[0].text).toBe('First todo');
     })
     .end(done);
@@ -81,6 +84,7 @@ describe('GET /todos/:id', () => {
 
     request(app)
     .get('/todos/'+id)
+    .set('x-auth',userData[0].tokens[0].token)
     .expect(200)
     .expect((res) => {
       expect(res.body.todo.text).toBe(todoData[0].text);
@@ -92,6 +96,7 @@ describe('GET /todos/:id', () => {
   it('Should fail id validation with todo not found', (done) => {
     request(app)
     .get('/todos/123')
+    .set('x-auth',userData[0].tokens[0].token)
     .expect(404)
     .end(done);
   });
@@ -101,6 +106,17 @@ describe('GET /todos/:id', () => {
 
     request(app)
     .get(`/todos/${id}`)
+    .set('x-auth',userData[0].tokens[0].token)
+    .expect(404)
+    .end(done);
+  });
+
+  it('Should not return a todo with an id', (done) => {
+    var id = todoData[1]._id.toHexString();
+
+    request(app)
+    .get('/todos/'+id)
+    .set('x-auth',userData[0].tokens[0].token)
     .expect(404)
     .end(done);
   });
@@ -108,13 +124,14 @@ describe('GET /todos/:id', () => {
 
 describe('Delete /todos/:id', () => {
   it('Should delete and return a todo with an id', (done) => {
-    var id = todoData[0]._id.toHexString();
+    var id = todoData[1]._id.toHexString();
 
     request(app)
     .delete('/todos/'+id)
+    .set('x-auth',userData[1].tokens[0].token)
     .expect(200)
     .expect((res) => {
-      expect(res.body.todo.text).toBe(todoData[0].text);
+      expect(res.body.todo.text).toBe(todoData[1].text);
       expect(res.body.todo._id).toBe(id);
     }).end((err, res) => {
       if (err) {
@@ -125,12 +142,32 @@ describe('Delete /todos/:id', () => {
         expect(todo).toNotExist();
         done();
       }).catch((err) => done(err));
+    });
   });
-});
+
+  it('Should not delete when owner is different', (done) => {
+    var id = todoData[1]._id.toHexString();
+
+    request(app)
+    .delete('/todos/'+id)
+    .set('x-auth',userData[0].tokens[0].token)
+    .expect(404)
+    .end((err, res) => {
+      if (err) {
+        return done(err);
+      }
+
+      ToDo.findById(id).then((todo) => {
+        expect(todo).toExist();
+        done();
+      }).catch((err) => done(err));
+    });
+  });
 
   it('Should fail id validation for delete with todo not found', (done) => {
     request(app)
     .delete('/todos/123')
+    .set('x-auth',userData[1].tokens[0].token)
     .expect(404)
     .end(done);
   });
@@ -140,6 +177,7 @@ describe('Delete /todos/:id', () => {
 
     request(app)
     .delete(`/todos/${id}`)
+    .set('x-auth',userData[1].tokens[0].token)
     .expect(404)
     .end(done);
   });
@@ -147,17 +185,19 @@ describe('Delete /todos/:id', () => {
 
 describe('PATCH /todos/:id tests', () => {
   it('Should update a todo and set completed to true', (done) => {
-    var id = todoData[2]._id;
-    todoData[2].text = "Third todo test";
+    var id = todoData[0]._id.toHexString();
+    todoData[0].text = "Another todo test";
+    todoData[0].completed = true;
     request(app)
     .patch(`/todos/${id}`)
-    .send(todoData[2])
+    .set('x-auth',userData[0].tokens[0].token)
+    .send(todoData[0])
     .expect(200)
     .expect((res) => {
-      expect(res.body.todo.text).toBe(todoData[2].text);
+      expect(res.body.todo.text).toBe(todoData[0].text);
       expect(res.body.todo.completed).toBe(true);
       expect(res.body.todo.completedAt).toNotBe(null);
-      expect(res.body.todo._id).toBe(id.toHexString());
+      expect(res.body.todo._id).toBe(id);
       expect(res.body.todo.completedAt).toBeA('number');
     })
     .end((err, res) => {
@@ -169,17 +209,19 @@ describe('PATCH /todos/:id tests', () => {
   });
 
   it('Should update and clear completedAt', (done) => {
-    var id = todoData[0]._id;
+    var id = todoData[0]._id.toHexString();
     todoData[0].text = 'First todo test';
+    todoData[0].completed = false;
     request(app)
-    .patch(`/todos/${todoData[0]._id}`)
+    .patch(`/todos/${id}`)
+    .set('x-auth',userData[0].tokens[0].token)
     .send(todoData[0])
     .expect(200)
     .expect((res) => {
        expect(res.body.todo.text).toBe(todoData[0].text);
        expect(res.body.todo.completed).toBe(false);
        expect(res.body.todo.completedAt).toNotExist();
-       expect(res.body.todo._id).toBe(id.toHexString());
+       expect(res.body.todo._id).toBe(id);
      })
      .end((err, res) => {
        if (err) {
@@ -187,6 +229,26 @@ describe('PATCH /todos/:id tests', () => {
        }
      });
      done();
+  });
+
+  it('Should not update when user is different', (done) => {
+    var id = todoData[0]._id.toHexString();
+    todoData[0].text = 'Last todo test';
+    request(app)
+    .patch(`/todos/${id}`)
+    .set('x-auth',userData[1].tokens[0].token)
+    .send(todoData[0])
+    .expect(404)
+     .end((err, res) => {
+       if (err) {
+         return done(err);
+       }
+       ToDo.findById(id).then((todo) => {
+         expect(todo).toExist();
+         expect(todo.text).toNotBe(todoData[0].text);
+         done();
+       }).catch((err) => done(err));
+     });
   });
 });
 
@@ -292,7 +354,7 @@ describe('POST /users/login tests', () => {
       var _id = userData[1]._id;
       User.findById({_id}).then((user) => {
         expect(user).toExist();
-        var token = user.tokens[0];
+        var token = user.tokens[1];
         expect(token).toInclude({
           access: 'auth',
           token: res.headers['x-auth']
@@ -319,7 +381,7 @@ describe('POST /users/login tests', () => {
       var _id = userData[1]._id;
       User.findById({_id}).then((user) => {
         expect(user).toExist();
-        expect(user.tokens.length).toBe(0);
+        expect(user.tokens.length).toBe(1);
         done();
       }).catch((e) => done(e));
     });
