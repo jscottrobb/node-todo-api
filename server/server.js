@@ -2,6 +2,7 @@ require('./config/config');
 const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
 
 const {mongoose} = require('./db/mongoose');
 const {ToDo} = require('./models/todo');
@@ -115,6 +116,18 @@ app.post('/todos', (req,res) => {
      app.get('/users/me', authenticate, (req,res) => {
         res.send(req.user);
       });
+
+app.post('/users/login', (req, res) => {
+  var body = _.pick(req.body,['email','password']);
+  // res.send(body);
+  User.findByCredentials(body.email,body.password).then((user) => {
+    return user.genAuthToken().then((token) => {
+      res.header('x-auth',token).send(user);
+    });
+  }).catch((e) => {
+    res.status(400).send();
+  });
+});
 
 app.listen(port, () => {
   console.log(`App is listening on port ${port}`);
