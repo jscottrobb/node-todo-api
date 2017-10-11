@@ -3,36 +3,14 @@ const request = require('supertest');
 
 const {app} = require('./../server');
 const {ToDo} = require('./../models/todo');
+const {User} = require('./../models/user');
 
 const {ObjectID} = require('mongodb');
 
-const todoData = [{
-  text: 'First todo',
-  _id: new ObjectID(),
-  completedat: 123
-},{
-  text: 'Second todo',
-  _id: new ObjectID()
-},{
-  text: 'Third todo',
-  _id: new ObjectID(),
-  completed: true
-}];
+const {populateTodos,populateUsers,userData,todoData} = require('./seed/seed');
 
-const userData = [{
-  email: 'jsrobb@yahoo.com',
-  password: 'blazin'
-},
-{
-  email: 'scooter@gmail.com',
-  password: 'killinMeSmalls'
-}];
-
-beforeEach((done) => {
-  ToDo.remove({}).then(() => {
-     ToDo.insertMany(todoData);
-  }).then(() => done());
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos tests', () => {
   it('Should post a new todo', (done) => {
@@ -213,31 +191,96 @@ describe('PATCH /todos/:id tests', () => {
   });
 });
 
-describe('User post tests', () => {
-  it('should post a valid user', (done) => {
+describe('/users/me authentication', () => {
+  it('Should authenticate the user',(done) => {
     request(app)
-    .post('/users')
-    .send(userData[0])
+    .get('/users/me')
+    .set('x-auth',userData[0].tokens[0].token)
     .expect(200)
     .expect((res) => {
-      expect(res.body.user.email).toBe(userData[0].email);
-      expect(res.body.user.password).toBe(userData[0].password);
+      expect(res.body.email).toBe(userData[0].email);
+      expect(res.body._id).toBe(userData[0]._id.toHexString());
     })
     .end((err, res) => {
       if (err) {
         return done(err);
       }
+    });
+    done();
+  });
 
-      User.find({userData[0].email}).then((res) => {
-        if (err) {
-          return done(err);
-        }
-        
-        expect(res.length).toBe(1);
-        expect(res[0].email).toBe(userData[0].email);
+  it('Should fail authentication with no token', (done) => {
+    request(app)
+    .get('/users/me')
+    .expect(401)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+    })
+    .end((err, res) => {
+      if (err) {
+        return done(err);
+      }
+    });
+    done();
+  });
+});
+
+describe('POST /users', () => {
+  it('Should post a valid user',(done) => {
+    var email = 'jrobb3333@gmail.com';
+    var password = '123abc!!!';
+
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.email).toBe(email);
+      expect(res.body._id).toExist();
+      expect(res.headers['x-auth']).toExist();
+    })
+    .end((err) => {
+      if(err) {
+        return done(err);
+      }
+      User.findOne({email}).then((user) => {
+        expect(user).toExist();
+        expect(user.password).toNotBe(password);
         done();
-      })
-      .catch((e) => done(e));
+      });
+    });
+  });
+
+  it('Should fail with an invalid password', (done) => {
+    var email = 'jrobb3333@gmail.com';
+    var password = '123a';
+
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(400)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+    })
+    .end((err, res) => {
+      expect(err).toExist();
+      done();
+    });
+  });
+
+  it('Should fail with duplicate email', (done) => {
+    var email = userData[0].email;
+    var password = userData[0].password;
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(400)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+    })
+    .end((err, res) => {
+      expect(err).toExist();
+      done();
     });
   });
 });
