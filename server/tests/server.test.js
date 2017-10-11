@@ -251,21 +251,15 @@ describe('POST /users', () => {
     });
   });
 
-  it('Should fail with an invalid password', (done) => {
-    var email = 'jrobb3333@gmail.com';
-    var password = '123a';
+  it('Should fail with an invalid password and email', (done) => {
+    var email = '123';
+    var password = '123!';
 
     request(app)
     .post('/users')
     .send({email, password})
     .expect(400)
-    .expect((res) => {
-      expect(res.body).toEqual({});
-    })
-    .end((err, res) => {
-      expect(err).toExist();
-      done();
-    });
+    .end(done);
   });
 
   it('Should fail with duplicate email', (done) => {
@@ -275,12 +269,6 @@ describe('POST /users', () => {
     .post('/users')
     .send({email, password})
     .expect(400)
-    .expect((res) => {
-      expect(res.body).toEqual({});
-    })
-    .end((err, res) => {
-      expect(err).toExist();
-      done();
-    });
+    .end(done);
   });
 });
