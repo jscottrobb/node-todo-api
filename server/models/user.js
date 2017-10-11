@@ -44,6 +44,23 @@ UserSchema.methods.genAuthToken = function () {
    });
 };
 
+UserSchema.methods.toJSON = function () {
+  var user = this;
+  var userObject = user.toObject();
+
+  return _.pick(userObject,['_id','email']);
+};
+
+UserSchema.methods.removeToken = function (token) {
+  var user = this;
+
+  return user.update({
+    $pull: {
+      tokens: {token}
+    }
+  });
+};
+
 UserSchema.statics.findByCredentials = function (email, password) {
   var User = this;
 
@@ -65,13 +82,6 @@ UserSchema.statics.findByCredentials = function (email, password) {
   });
 };
 
-UserSchema.methods.toJSON = function () {
-  var user = this;
-  var userObject = user.toObject();
-
-  return _.pick(userObject,['_id','email']);
-};
-
 UserSchema.statics.findByToken = function (token) {
     var User = this;
     var decoded;
@@ -88,6 +98,7 @@ UserSchema.statics.findByToken = function (token) {
       'tokens.access': 'auth'
     });
 };
+
 var User = mongoose.model('User', UserSchema);
 
 UserSchema.pre('save', function(next) {

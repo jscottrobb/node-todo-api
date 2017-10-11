@@ -5,7 +5,7 @@ var authenticate = (req,res,next) => {
 
   User.findByToken(token).then((user) => {
     if (!user) {
-      return res.status(404).send();
+      return res.status(401).send();
     }
     req.user = user;
     req.token = token;
