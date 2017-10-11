@@ -119,11 +119,10 @@ app.post('/todos', (req,res) => {
 
 app.post('/users/login', (req, res) => {
   var body = _.pick(req.body,['email','password']);
-  // res.send(body);
+
   User.findByCredentials(body.email,body.password).then((user) => {
-    return user.genAuthToken().then((token) => {
+      var token = user.tokens[0].token;
       res.header('x-auth',token).send(user);
-    });
   }).catch((e) => {
     res.status(400).send();
   });

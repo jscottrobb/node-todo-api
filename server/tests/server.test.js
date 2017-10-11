@@ -247,9 +247,9 @@ describe('POST /users', () => {
         expect(user).toExist();
         expect(user.password).toNotBe(password);
         done();
-      });
-    });
+    }).catch((e) => done(e));
   });
+});
 
   it('Should fail with an invalid password and email', (done) => {
     var email = '123';
@@ -269,6 +269,65 @@ describe('POST /users', () => {
     .post('/users')
     .send({email, password})
     .expect(400)
+    .end(done);
+  });
+});
+
+describe('POST /users/login tests', () => {
+  it('Should login with valid email and password', (done) => {
+    var email = userData[0].email;
+    var password = userData[0].password;
+    request(app)
+    .post('/users/login')
+    .send({email, password})
+    .expect(200)
+    .expect((res) => {
+      expect(res.body.email).toBe(email);
+      expect(res.body._id).toExist();
+      expect(res.headers['x-auth']).toExist();
+    })
+    .end((err,res) => {
+      if (err) {
+        return done(err);
+      }
+      var _id = userData[0]._id;
+      User.findById({_id}).then((user) => {
+        expect(user).toExist();
+        var token = user.tokens[0];
+        expect(token).toInclude({
+          access: 'auth',
+          token: res.headers['x-auth']
+        });
+        done();
+      }).catch((e) => done(e));
+    });
+  });
+
+  it('Should fail when email is invalid', (done) => {
+    var email = 'jrobb1';
+    var password = userData[0].password;
+    request(app)
+    .post('/users/login')
+    .send({email, password})
+    .expect(400)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+      expect(res.headers['x-auth']).toNotExist();
+    })
+    .end(done);
+  });
+
+  it('Should fail when password is invalid', (done) => {
+    var email = userData[0].email;
+    var password = '123';
+    request(app)
+    .post('/users/login')
+    .send({email, password})
+    .expect(400)
+    .expect((res) => {
+      expect(res.body).toEqual({});
+      expect(res.headers['x-auth']).toNotExist();
+    })
     .end(done);
   });
 });
