@@ -139,7 +139,7 @@ describe('Delete /todos/:id', () => {
       }
 
       ToDo.findById(id).then((todo) => {
-        expect(todo).toNotExist();
+        expect(todo).toBeFalsy();
         done();
       }).catch((err) => done(err));
     });
@@ -158,7 +158,7 @@ describe('Delete /todos/:id', () => {
       }
 
       ToDo.findById(id).then((todo) => {
-        expect(todo).toExist();
+        expect(todo).toBeTruthy();
         done();
       }).catch((err) => done(err));
     });
@@ -196,9 +196,9 @@ describe('PATCH /todos/:id tests', () => {
     .expect((res) => {
       expect(res.body.todo.text).toBe(todoData[0].text);
       expect(res.body.todo.completed).toBe(true);
-      expect(res.body.todo.completedAt).toNotBe(null);
+      expect(res.body.todo.completedAt).not.toBe(null);
       expect(res.body.todo._id).toBe(id);
-      expect(res.body.todo.completedAt).toBeA('number');
+      expect(typeof res.body.todo.completedAt).toBe('number');
     })
     .end((err, res) => {
       if (err) {
@@ -220,7 +220,7 @@ describe('PATCH /todos/:id tests', () => {
     .expect((res) => {
        expect(res.body.todo.text).toBe(todoData[0].text);
        expect(res.body.todo.completed).toBe(false);
-       expect(res.body.todo.completedAt).toNotExist();
+       expect(res.body.todo.completedAt).toBeFalsy();
        expect(res.body.todo._id).toBe(id);
      })
      .end((err, res) => {
@@ -244,8 +244,8 @@ describe('PATCH /todos/:id tests', () => {
          return done(err);
        }
        ToDo.findById(id).then((todo) => {
-         expect(todo).toExist();
-         expect(todo.text).toNotBe(todoData[0].text);
+         expect(todo).toBeTruthy();
+         expect(todo.text).not.toBe(todoData[0].text);
          done();
        }).catch((err) => done(err));
      });
@@ -297,16 +297,16 @@ describe('POST /users', () => {
     .expect(200)
     .expect((res) => {
       expect(res.body.email).toBe(email);
-      expect(res.body._id).toExist();
-      expect(res.headers['x-auth']).toExist();
+      expect(res.body._id).toBeTruthy();
+      expect(res.headers['x-auth']).toBeTruthy();
     })
     .end((err) => {
       if(err) {
         return done(err);
       }
       User.findOne({email}).then((user) => {
-        expect(user).toExist();
-        expect(user.password).toNotBe(password);
+        expect(user).toBeTruthy();
+        expect(user.password).not.toBe(password);
         done();
     }).catch((e) => done(e));
   });
@@ -344,8 +344,8 @@ describe('POST /users/login tests', () => {
     .expect(200)
     .expect((res) => {
       expect(res.body.email).toBe(email);
-      expect(res.body._id).toExist();
-      expect(res.headers['x-auth']).toExist();
+      expect(res.body._id).toBeTruthy();
+      expect(res.headers['x-auth']).toBeTruthy();
     })
     .end((err,res) => {
       if (err) {
@@ -353,9 +353,9 @@ describe('POST /users/login tests', () => {
       }
       var _id = userData[1]._id;
       User.findById({_id}).then((user) => {
-        expect(user).toExist();
-        var token = user.tokens[1];
-        expect(token).toInclude({
+        expect(user).toBeTruthy();
+        var token = user.toObject().tokens[1];
+        expect(token).toMatchObject({
           access: 'auth',
           token: res.headers['x-auth']
         });
@@ -372,7 +372,7 @@ describe('POST /users/login tests', () => {
     .send({email, password})
     .expect(400)
     .expect((res) => {
-      expect(res.headers['x-auth']).toNotExist();
+      expect(res.headers['x-auth']).toBeFalsy();
     })
     .end((err,res) => {
       if (err) {
@@ -380,7 +380,7 @@ describe('POST /users/login tests', () => {
       }
       var _id = userData[1]._id;
       User.findById({_id}).then((user) => {
-        expect(user).toExist();
+        expect(user).toBeTruthy();
         expect(user.tokens.length).toBe(1);
         done();
       }).catch((e) => done(e));
@@ -400,7 +400,7 @@ describe('DELETE /users/me/token', () => {
       }
       var _id = userData[0]._id;
       User.findById({_id}).then((user) => {
-        expect(user).toExist();
+        expect(user).toBeTruthy();
         expect(user.tokens.length).toBe(0);
         done();
       }).catch((e) => done(e));
